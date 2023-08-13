@@ -4,7 +4,7 @@ from contextlib import contextmanager
 
 import numba_mpi as mpi
 import numpy as np
-
+import numba
 
 @contextmanager
 def barrier_enclosed():
@@ -13,7 +13,6 @@ def barrier_enclosed():
         yield
     finally:
         mpi.barrier()
-
 
 def setup_dataset_and_sync_all_workers(storage, dataset_name):
     dataset = storage[dataset_name]
