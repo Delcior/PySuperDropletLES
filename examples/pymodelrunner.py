@@ -1,6 +1,7 @@
 """ example of integration with the py-modelrunner package """
 import matplotlib.pyplot as plt
 import numpy as np
+import gc
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -84,9 +85,13 @@ def benchmark(grids, results):
                 }
             )
             res=model()
-            print("exec time ", int(res[0]), ' time.time: ', res[1], " rank: ", numba_mpi.rank())
+            res1 = np.array([res[0]], dtype=np.float64).astype(np.float64)
+            times_array = np.empty((numba_mpi.size(),) if numba_mpi.rank() == 0 else (0,), dtype=np.float64).astype(dtype=np.float64)
+            numba_mpi.gather(res1, times_array, 1, 0)
+            print("exec time ", float(res[0]), ' time.time: ', res[1], " rank: ", numba_mpi.rank())
             if k==1 and numba_mpi.rank() == 0:
-                results[str(grid)] = res[0]
+                print("after gather: ", times_array)
+                results[str(grid)] = np.average(times_array)
         numba_mpi.barrier()
 if __name__ == "__main__":
     # submit_job(
@@ -105,8 +110,8 @@ if __name__ == "__main__":
     #     method="foreground",
     # )
     results = {}
-    grids = ((256, 256), (512, 512), (1024, 1024), (2048, 2048), (4096, 4096), (9192, 9192)))
-    #grids = ((4096, 4096),)
+    #grids = ((256, 256), (512, 512), (1024, 1024), (2048, 2048), (4096, 4096), (9192, 9192)))
+    grids = ((4096, 4096),)
     benchmark(grids, results)
     #benchmark(((1024, 1024),), results)
     if numba_mpi.rank() == 0:
